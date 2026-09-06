@@ -1,0 +1,10 @@
+# Toolchain for streamhouse. Pinned, not "latest" — a portfolio repo that a
+# hiring manager clones next year should still build.
+[tools]
+java   = "temurin-21"
+maven  = "3.9.16"
+python = "3.12"
+
+[env]
+# Spark needs JAVA_HOME explicitly; mise exports it from the java tool above.
+_.python.venv = { path = ".venv", create = true }

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      # Spark and Kafka tests need a JVM and a broker; they are excluded here and
+      # run locally. Wire them in during P9 if you want them gated in CI.
+      - run: uv sync --all-extras
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q -m "not spark and not kafka"
+
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: mvn test in every service
+        run: |
+          shopt -s nullglob
+          found=0
+          for d in services/*/pom.xml; do
+            found=1
+            echo "== ${d%/pom.xml}"
+            (cd "${d%/pom.xml}" && mvn -B -q test)
+          done
+          [ "$found" = 1 ] || echo "no services yet (P2 creates the first one)"
