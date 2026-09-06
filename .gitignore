@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.ruff_cache/
+.pytest_cache/
+data/
+warehouse/
+checkpoints/
+airflow/logs/
+*.log
+.DS_Store
+target/
+dependency-reduced-pom.xml
