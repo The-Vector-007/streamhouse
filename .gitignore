@@ -12,3 +12,6 @@ airflow/logs/
 .DS_Store
 target/
 dependency-reduced-pom.xml
+
+# Lavish Editor review artifacts (local only)
+.lavish/
