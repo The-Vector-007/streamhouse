@@ -24,3 +24,6 @@ resume honest and lets me go deep instead of re-learning syntax. Java goes on th
 ingest and serving edges, which is where real systems put it anyway, and it is the
 language that was blocking mid-level roles I wanted (Adyen, N26-class fintech).
 **Cost:** two build systems in one repo, and a slower start on P2.
+
+## DLQ parition size
+A DLQ needs neither throughput nor per-account ordering, and one partition means dead letters stay in arrival order
