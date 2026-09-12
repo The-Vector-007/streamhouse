@@ -28,6 +28,11 @@ down: ## stop everything and drop volumes
 topics: ## list kafka topics
 	docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 
+.PHONY: topics-create
+topics-create: ## create topics txn.raw and txn.dlq with three parititions each
+	uv run src/streamhouse/generator/topics.py
+
+
 .PHONY: test
 test: ## run python tests
 	uv run pytest -q
