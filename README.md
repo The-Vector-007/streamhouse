@@ -8,7 +8,7 @@ serving API reads the marts back out. Runs on a laptop.
 *Built so far:* the whole Python medallion. A defect-injecting generator feeds
 Kafka; bronze lands it in Delta with provenance, schema enforcement and a dead-letter
 table; silver deduplicates, validates and quarantines, emitting a data-quality table
-per run; gold rebuilds date-partitioned marts idempotently; and an Airflow DAG runs the
+per run and failing the run when a check's failure rate crosses its threshold; gold rebuilds date-partitioned marts idempotently; and an Airflow DAG runs the
 refine, compaction and file-expiry cycle. Exactly-once is proved by killing the
 stream mid-batch and asserting the row count on restart, not asserted in prose.
 The Java edges (P2, P6) and the load test (P7) are not built. The roadmap says
