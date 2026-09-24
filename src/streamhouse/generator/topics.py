@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple
+
 from confluent_kafka import KafkaError, KafkaException
 from confluent_kafka.admin import AdminClient, NewTopic
 
@@ -7,7 +7,7 @@ from confluent_kafka.admin import AdminClient, NewTopic
 BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 # Topic schema: (topic_name, num_partitions, replication_factor)
-TOPIC_CONFIGS: List[Tuple[str, int, int]] = [
+TOPIC_CONFIGS: list[tuple[str, int, int]] = [
     ("txn.raw", 6, 1),
     ("txn.dlq", 1, 1),
 ]
@@ -31,7 +31,7 @@ def print_partition_count(admin: AdminClient, topic_name: str) -> None:
 
 def create_kafka_topics(
     admin: AdminClient,
-    topic_definitions: List[Tuple[str, int, int]],
+    topic_definitions: list[tuple[str, int, int]],
     retention_ms: int = 604800000,
 ) -> None:
     # Build topic list cleanly using list comprehension
