@@ -28,6 +28,10 @@ packages = ["src/streamhouse"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+# /tmp is tmpfs on this box (RAM-backed, 3.9 GB cap), and the warehouse/checkpoints
+# fixtures are built on tmp_path. Delta test output would be charged against the
+# same 8 GB the Spark driver needs, so basetemp goes on disk.
+addopts = "--basetemp=.pytest-tmp"
 # A hung Spark job should fail the run, not wedge it.
 timeout = 300
 markers = [

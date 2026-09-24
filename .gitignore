@@ -15,3 +15,6 @@ dependency-reduced-pom.xml
 
 # Lavish Editor review artifacts (local only)
 .lavish/
+
+# pytest basetemp, kept off tmpfs (see pyproject.toml)
+.pytest-tmp/
