@@ -1,9 +1,14 @@
 # Streamhouse
 
-**A real-time transaction lakehouse, built in the open.** A Java 21 ingest gateway
-feeds Kafka, Spark Structured Streaming lands it in a Delta Lake medallion with
-exactly-once guarantees and data-quality gates, and a Java serving API reads the
-marts back out. Runs on a laptop.
+**A real-time transaction lakehouse, built in the open.** *Target architecture:* a
+Java 21 ingest gateway feeds Kafka, Spark Structured Streaming lands it in a Delta
+Lake medallion with exactly-once guarantees and data-quality gates, and a Java
+serving API reads the marts back out. Runs on a laptop.
+
+*Built so far:* the transaction domain model (money as integer minor units,
+currency validation, timezone-aware event time, account-keyed partitioning) and
+Kafka topic provisioning, both committed and unit-tested. Everything above that
+line is still scaffolding. The roadmap says which is which.
 
 > 🚧 **Status: scaffolded, not built.** Environment, tests and task briefs are in
 > place; `src/` is stubs. The roadmap below tracks what is actually real, and it
@@ -64,7 +69,7 @@ memory step that matters.
 ## Roadmap
 
 - [x] P0 — Scaffold: toolchain, compose, tests, task briefs
-- [ ] P1 — Domain model, Kafka topics, transaction generator
+- [~] P1 — Domain model ✅, Kafka topics ✅, transaction generator ⬜
 - [ ] P2 — Java ingest gateway: virtual threads, backpressure, idempotency, graceful shutdown
 - [ ] P3 — Bronze: exactly-once ingestion + failure-injection proof
 - [ ] P4 — Silver: validation, dedup, quarantine, DQ gates
