@@ -59,3 +59,21 @@ by pushing `event_time` further into the past, which is also the realistic case:
 events arrive late because of network delay and mobile buffering, not because
 clocks run ahead.
 **Cost:** clock-skew-forward, a real production defect, is untested here.
+
+## Data-quality checks gate the run on a rate, not on a single bad row (2026-09-24)
+**Rejected:** failing the run on any failed check, and the previous behaviour of
+computing `passed` and having nothing read it.
+**Why:** the second was the real problem. `dq_results` emitted a `passed` flag that
+no code consumed, so the pipeline reported quality without ever acting on it, and
+"data-quality gates" was a word the code did not earn. Failing on a single bad row
+would have been worse: upstream emits bad records continuously, the live warehouse
+sits at ~2% on two checks, and a gate that is red every night is one nobody reads.
+The threshold catches the thing that matters, which is the **rate moving**: a new
+country code nobody announced, or an upstream schema change, arrives as a step
+change well clear of 5%.
+**Cost:** a number that has to be tuned per check, and a `--dq-threshold` escape
+hatch so a known-bad backfill can be pushed through deliberately rather than by
+commenting the check out. The DQ rows are written **before** the gate raises, so a
+failed run still leaves the evidence of why on disk. Gold is rebuilt before the
+raise too: the rows that reached silver are valid, and leaving gold stale would
+turn a quality alert into a second outage.

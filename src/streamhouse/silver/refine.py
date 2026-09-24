@@ -36,6 +36,30 @@ def _sql_list(values) -> str:
     return ", ".join(f"'{v}'" for v in sorted(values))
 
 
+# How much of a batch may fail a check before the run is treated as broken.
+#
+# Not zero, deliberately. Upstream systems emit bad records continuously and
+# always will: the live warehouse sits at roughly 2% non-positive amounts and 2%
+# unknown currencies, and a gate tripping on the first bad row would be red
+# permanently. A permanently red check is one nobody reads. What this catches is
+# the *rate moving*: a new country code nobody told us about, or an upstream
+# schema change, shows up as a step change well above 5%.
+DEFAULT_FAILURE_THRESHOLD = 0.05
+
+# Per-check overrides go here when one rule deserves a tighter or looser bound
+# than the rest. Kept explicit rather than clever so the numbers are reviewable.
+DEFAULT_THRESHOLDS: dict[str, float] = {
+    "non_positive_amount": DEFAULT_FAILURE_THRESHOLD,
+    "unknown_currency": DEFAULT_FAILURE_THRESHOLD,
+    "unknown_status": DEFAULT_FAILURE_THRESHOLD,
+    "missing_counterparty": DEFAULT_FAILURE_THRESHOLD,
+}
+
+
+class DataQualityBreach(Exception):
+    """A check exceeded its threshold. Raised after the DQ rows are written."""
+
+
 # Business rules, as SQL strings rather than Column objects. Two reasons: a Column
 # cannot be built before a SparkContext exists, so a module-level tuple of them
 # blows up at import; and a string is the same expression the quarantine reason and
@@ -124,38 +148,56 @@ def dq_results(
     table: str = "silver.transactions",
     run_id: str | None = None,
     checked_at: datetime | None = None,
+    thresholds: dict[str, float] | None = None,
 ) -> DataFrame:
     """One row per rule per run: how many were checked, how many failed.
 
     This is the artifact that turns "data quality" from a claim into a time series.
     It is also what lakehouse-mcp's dq_results tool reads, so an agent can answer
     "did last night's load degrade?" without anyone opening a notebook.
+
+    `passed` compares the failure rate against a threshold rather than demanding
+    zero failures. Upstream systems emit bad records continuously and always will;
+    a check that fails on the first one would be red permanently, and a check that
+    is permanently red is one nobody looks at. What matters is the rate moving.
     """
     spark = source.sparkSession
     run = run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     stamp = checked_at or datetime.now(UTC)
+    limits = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     total = source.count()
 
     rows = []
     for name, predicate in QUARANTINE_RULES:
         failed = quarantined.where(F.expr(predicate)).count()
-        rows.append(
-            (
-                run,
-                table,
-                name,
-                stamp,
-                total,
-                failed,
-                # Guard the divide: an empty batch is not a 100% failure rate, and
-                # a NaN here would poison every downstream average.
-                float(failed) / total if total else 0.0,
-                failed == 0,
-            )
-        )
+        # Guard the divide: an empty batch is not a 100% failure rate, and a NaN
+        # here would poison every downstream average.
+        rate = float(failed) / total if total else 0.0
+        limit = limits[name]
+        rows.append((run, table, name, stamp, total, failed, rate, limit, rate <= limit))
 
     return spark.createDataFrame(
         rows,
         "run_id string, table_name string, check_name string, checked_at timestamp, "
-        "rows_checked long, rows_failed long, failure_rate double, passed boolean",
+        "rows_checked long, rows_failed long, failure_rate double, "
+        "threshold double, passed boolean",
     )
+
+
+def breaches(results: DataFrame) -> list[dict]:
+    """The checks that blew their threshold. Empty list means the gate is open.
+
+    Returned as plain dicts rather than a DataFrame because the caller is about to
+    put this in an exception message, and a lazy DataFrame in a traceback tells
+    nobody anything.
+    """
+    return [
+        {
+            "check": r.check_name,
+            "failure_rate": round(r.failure_rate, 4),
+            "threshold": r.threshold,
+            "rows_failed": r.rows_failed,
+            "rows_checked": r.rows_checked,
+        }
+        for r in results.where(~F.col("passed")).collect()
+    ]
