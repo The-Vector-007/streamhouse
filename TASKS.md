@@ -29,11 +29,11 @@ much stronger answer than "that's how it was set up."
 
 ## P0 — Environment
 
-- [ ] **P0.1 Raise WSL memory.** See `docs/RUNBOOK.md`. Do this first and read the
+- [x] **P0.1 Raise WSL memory.** See `docs/RUNBOOK.md`. Do this first and read the
       commit-limit warning; you have crashed this host before by skipping it.
-- [ ] **P0.2 `make setup`.** Installs Java 21, Maven, Python 3.12, and the venv.
+- [x] **P0.2 `make setup`.** Installs Java 21, Maven, Python 3.12, and the venv.
       Done when `java -version` says 21 and `python -V` says 3.12.
-- [ ] **P0.3 `make up PROFILE=ingest && make topics`.** Kafka starts, `topics`
+- [x] **P0.3 `make up PROFILE=ingest && make topics`.** Kafka starts, `topics`
       returns empty (no topics yet — that is P1).
 
 ---
