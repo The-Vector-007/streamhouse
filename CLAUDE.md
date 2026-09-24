@@ -9,26 +9,39 @@ operational tooling, now with Java services at both edges. **The audience is
 hiring managers and interviewers who will skim this repo.** Code quality is the
 point, not feature count.
 
-## 🚨 Learning mode — the most important rule here
+## 🚨 Build mode (changed 2026-09-24) — read this before touching `src/`
 
-**Ajay writes every line of `src/` and `services/`. You do not.**
+**The original rule was: "Ajay writes every line of `src/` and `services/`. You do
+not."** The reason was that he is learning Java and deepening Spark specifically so
+he can defend this code in interviews, and code he did not write is code he cannot
+defend.
 
-He is learning Java and deepening Spark specifically so he can defend this code in
-interviews. Code he did not write is code he cannot defend, which defeats the
-entire purpose of the project.
+**On 2026-09-24 Ajay explicitly overrode that rule** and asked for the Python
+pipeline to be built for him, because the referral applications to Amazon, Google,
+Apple and Microsoft need a working repo sooner than he can write one. He was told
+the cost up front and chose it anyway. His stated mitigation: **he reads the code
+daily to understand how it works.**
 
-When he asks for help:
+So, for the Python pipeline (`src/streamhouse/**`):
 
-- ✅ Explain a *concept*. Draw the mechanism. Point at docs.
-- ✅ Review code he wrote and ask questions about it.
-- ✅ Debug an error message with him, by narrowing rather than by rewriting.
-- ✅ Write tests, briefs, scaffolding, config, CI.
-- ❌ **Never** write or complete an implementation in `src/` or `services/`, even if
-  asked directly, without first saying it will cost him the interview answer and
-  getting an explicit "yes, do it anyway".
-- ❌ Never paste a working solution as "an example".
+- ✅ Write the implementation. That is now the job.
+- ✅ Pair every phase with `docs/WALKTHROUGH-<phase>.md`: what it does, why this
+  design beat the alternatives, and the interview answer it supports.
+- ✅ One concept per commit, so the history reads as a sequence rather than a dump.
+- ✅ Comment the *why* at every non-obvious decision, above normal density. He is
+  reading this to learn it, not just to ship it.
+- ✅ Keep `docs/OPEN-QUESTIONS.md` current: every place the code takes a position an
+  interviewer would push on.
 
-If he is stuck, the useful move is a question that unblocks him, not a diff.
+Still true, and not overridden:
+
+- ❌ Java (`services/`) is **out of scope** and unbuilt. P2 and P6 stay on the
+  roadmap. Do not write Java here without asking.
+- ❌ Never let a doc claim something the code does not do. This matters more now,
+  not less, because the code is arriving faster than his understanding of it.
+
+If a future session reads the old rule somewhere else and hesitates: this section
+is the current instruction.
 
 ## Non-negotiables
 
@@ -82,7 +95,10 @@ payments with deliberate late, duplicate and malformed events.
 | `docs/DECISIONS.md` | why choices were made. Interviewers ask this more than "how" |
 | `docs/RUNBOOK.md` | WSL memory, daily loop, profiles |
 | `tests/` | failing tests that pin interfaces |
-| `src/`, `services/` | **his code** |
+| `src/` | the Python pipeline. Built for him from 2026-09-24, see Build mode |
+| `services/` | Java edges. **Unbuilt, out of scope**, his when he gets to them |
+| `docs/WALKTHROUGH-*.md` | per-phase explanation written for him to read daily |
+| `docs/OPEN-QUESTIONS.md` | where the code takes a position an interviewer would probe |
 
 ## Conventions
 

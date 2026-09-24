@@ -27,3 +27,35 @@ language that was blocking mid-level roles I wanted (Adyen, N26-class fintech).
 
 ## DLQ parition size
 A DLQ needs neither throughput nor per-account ordering, and one partition means dead letters stay in arrival order
+
+## The Python pipeline is built for me, not by me (2026-09-24)
+**Rejected:** writing every line myself, which was the original rule in `CLAUDE.md`.
+**Why:** the referral applications to Amazon, Google, Apple and Microsoft need a
+working repo now, and I cannot write P3 through P8 at the speed that needs. I took
+the trade knowingly.
+**Cost:** the original rule existed because code I did not write is code I cannot
+defend in an interview, and that cost is real. Mitigation is that I read the code
+daily, and each phase ships with `docs/WALKTHROUGH-*.md` plus an entry in
+`docs/OPEN-QUESTIONS.md` marking where an interviewer would push. Java (`services/`)
+stays out of scope and stays mine.
+
+## Defects that the domain model refuses are emitted as raw bytes, not Transactions
+**Rejected:** relaxing `Transaction`'s validation so the generator can build
+defective instances; and bypassing the constructor with `object.__new__`.
+**Why:** `DefectRates` asks for `null_field`, `negative_amount` and
+`unknown_currency`, but `Transaction.__init__` raises `ValueError` for exactly
+those, plus zero amounts and future `event_time`. That validation is correct and
+worth keeping: the model should refuse to represent an invalid transaction. So the
+corrupt fraction is emitted as raw JSON bytes that never go through the model,
+which also gives bronze's DLQ path something real to catch. `generate_batch`
+returns `Transaction` objects for the clean, duplicate and late fractions only.
+**Cost:** the generator has two output shapes, and callers must handle both.
+
+## Lateness is simulated backwards, never forwards
+**Rejected:** modelling a client with a clock running fast.
+**Why:** `Transaction._validate` rejects any `event_time` in the future, so a
+forward-skewed event cannot exist as a `Transaction` at all. Late data is modelled
+by pushing `event_time` further into the past, which is also the realistic case:
+events arrive late because of network delay and mobile buffering, not because
+clocks run ahead.
+**Cost:** clock-skew-forward, a real production defect, is untested here.
