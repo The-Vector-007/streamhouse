@@ -45,9 +45,15 @@ Question - Why 6 partitions and not 1? What would force you to change it, and wh
     > More paritions increase end to end latency - messages are commited and only after that they are visible to consumers. commiting a messages means it should be present acorss all the in sync replicas(ISR), and it takes time.
     > produces buffer and consumer buffer will have to increase leading to increase in client memory
 
-## P1.2 — Number of partitions
+## P1.3 — Dirty Data
 
 Question - Your generator emits 5% duplicates and 2% late events. Why would a pipeline that passes on clean data fail here, and which layer catches each defect?
 
-**Before** (2026-09-06)
-> 
+**Before** (2026-09-13)
+> duplicate events and late events will be addressed in the silver layer.
+> bronze will allow them as these events are still parseable - structure is present
+>pipeline is written in such a way that it assumes whatever event is coming for it to process are valid due to which it runs on clean data but when duplicate or late events come which has a valid structure the same pipeline fails due to which dq checks come into picture!
+
+**After** (2026-09-13)
+>first of all dedup is a transformation not dq
+>duplicates break row-uniqueness and die in silver dedup because nothing upstream can see them; late events break window completeness, bounded by a watermark in silver with the restatement cost landing in gold; and the real tension is completeness against latency. Then let them pick which thread to pull
