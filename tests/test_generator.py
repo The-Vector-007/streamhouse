@@ -1,14 +1,26 @@
 """P1.3 — the generator.
 
-You write: src/streamhouse/generator/produce.py
+Implemented in: src/streamhouse/generator/produce.py
 
 The generator emits defects on purpose. Every downstream layer exists to handle
 them, so a generator that is too clean makes the rest of the project theatre.
 """
 
+from uuid import uuid4
+
 import pytest
 
-from streamhouse.generator.produce import DefectRates, generate_batch
+from streamhouse.generator.produce import (
+    DefectRates,
+    generate_batch,
+    generate_payloads,
+    produce_batch,
+)
+from streamhouse.generator.topics import (
+    BOOTSTRAP_SERVERS,
+    create_admin_client,
+    create_kafka_topics,
+)
 
 
 def test_generates_requested_count():
@@ -51,4 +63,44 @@ def test_produces_to_kafka():
     Publish a batch, consume it back, assert the count. Keying is asserted in
     test_domain.py, so here you only care that it lands.
     """
-    pytest.skip("implement in P1.3 once produce_batch() exists")
+    from confluent_kafka import Consumer
+
+    topic = f"test.produce.{uuid4().hex[:8]}"
+    admin = create_admin_client()
+    create_kafka_topics(admin, [(topic, 3, 1)])
+
+    try:
+        payloads = generate_payloads(250, seed=77, defects=DefectRates())
+        delivered = produce_batch(payloads, topic=topic)
+        assert delivered == 250, "producer reported fewer deliveries than it was given"
+
+        consumer = Consumer(
+            {
+                "bootstrap.servers": BOOTSTRAP_SERVERS,
+                "group.id": f"test-{uuid4().hex[:8]}",
+                # Read the topic from the start; this consumer has no committed
+                # offsets and the default would skip everything already produced.
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
+            }
+        )
+        consumer.subscribe([topic])
+        try:
+            seen = []
+            # Poll until the batch is accounted for, with a deadline rather than a
+            # fixed sleep: broker assignment latency is not something to guess at.
+            while len(seen) < 250:
+                message = consumer.poll(timeout=10.0)
+                if message is None:
+                    break
+                if message.error():
+                    continue
+                seen.append(message.value())
+        finally:
+            consumer.close()
+
+        assert len(seen) == 250
+        # The bytes survive the round trip intact, which is what bronze relies on.
+        assert set(seen) == set(payloads)
+    finally:
+        admin.delete_topics([topic])
