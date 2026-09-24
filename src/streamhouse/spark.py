@@ -12,11 +12,19 @@ See docs/RUNBOOK.md.
 
 import os
 
+import pyspark
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
 
 DELTA_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
 DELTA_CATALOG = "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+
+# The Kafka source is not bundled with PySpark either; without it, readStream
+# fails with "Failed to find data source: kafka", which reads like a typo rather
+# than a missing jar. Pinned to the running Spark version rather than hardcoded:
+# a connector built against a different Spark minor fails at runtime, deep inside
+# the JVM, with a much worse error message. Scala 2.12 matches the pyspark wheel.
+KAFKA_PACKAGE = f"org.apache.spark:spark-sql-kafka-0-10_2.12:{pyspark.__version__}"
 
 # Two cores, not local[*]. The box has six, but the Spark driver shares 8 GB with
 # a Kafka container, and in local mode the driver is also the executor: more
@@ -59,10 +67,10 @@ def build_session(
         .config("spark.sql.adaptive.enabled", "true")
     )
 
-    # This is what injects spark.jars.packages=io.delta:delta-spark_2.12:3.2.1 and
-    # makes Ivy fetch it. First call on a cold machine downloads ~6 MB; every call
+    # This is what injects spark.jars.packages and makes Ivy fetch Delta plus the
+    # Kafka connector. First call on a cold machine downloads them; every call
     # after that resolves from ~/.ivy2.
-    session = configure_spark_with_delta_pip(builder).getOrCreate()
+    session = configure_spark_with_delta_pip(builder, extra_packages=[KAFKA_PACKAGE]).getOrCreate()
 
     # Spark's INFO chatter buries actual failures in a test run.
     session.sparkContext.setLogLevel("WARN")
