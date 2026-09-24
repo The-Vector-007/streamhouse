@@ -63,6 +63,7 @@ def read_kafka_stream(
     topic: str = RAW_TOPIC,
     bootstrap_servers: str = BOOTSTRAP_SERVERS,
     starting_offsets: str = "earliest",
+    max_offsets_per_trigger: int | None = None,
 ) -> DataFrame:
     """The raw Kafka stream, before any parsing.
 
@@ -70,7 +71,7 @@ def read_kafka_stream(
     checkpoint rather than committing them back to Kafka, because the offset and
     the data it produced have to advance together or exactly-once is impossible.
     """
-    return (
+    reader = (
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", bootstrap_servers)
         .option("subscribe", topic)
@@ -78,8 +79,13 @@ def read_kafka_stream(
         # Spark should not die because a topic was recreated under it; that is an
         # operational event, not a data error.
         .option("failOnDataLoss", "false")
-        .load()
     )
+    if max_offsets_per_trigger is not None:
+        # Caps how much of the backlog one micro-batch swallows. Also the knob that
+        # decides where batch boundaries fall, which matters more than it looks:
+        # see test_deleting_the_checkpoint_can_silently_lose_data.
+        reader = reader.option("maxOffsetsPerTrigger", max_offsets_per_trigger)
+    return reader.load()
 
 
 def to_bronze(raw: DataFrame, *, ingested_at: datetime | None = None) -> DataFrame:
