@@ -18,3 +18,7 @@ dependency-reduced-pom.xml
 
 # pytest basetemp, kept off tmpfs (see pyproject.toml)
 .pytest-tmp/
+
+# Airflow runs in its own venv: its dependency pins fight with pyspark's.
+.venv-airflow/
+airflow/home/

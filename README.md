@@ -8,12 +8,14 @@ serving API reads the marts back out. Runs on a laptop.
 *Built so far:* the whole Python medallion. A defect-injecting generator feeds
 Kafka; bronze lands it in Delta with provenance, schema enforcement and a dead-letter
 table; silver deduplicates, validates and quarantines, emitting a data-quality table
-per run; gold rebuilds date-partitioned marts idempotently. Exactly-once is proved by
-killing the stream mid-batch and asserting the row count on restart, not asserted in
-prose. Airflow and the Java edges are not built. The roadmap says which is which.
+per run; gold rebuilds date-partitioned marts idempotently; and an Airflow DAG runs the
+refine, compaction and file-expiry cycle. Exactly-once is proved by killing the
+stream mid-batch and asserting the row count on restart, not asserted in prose.
+The Java edges (P2, P6) and the load test (P7) are not built. The roadmap says
+which is which.
 
-> 🚧 **Status: bronze, silver and gold run end to end. Airflow and Java are not built.**
-> 42 tests pass, 0 skipped. The roadmap below tracks what is actually real, and it
+> ✅ **Status: the Python pipeline runs end to end under Airflow. The Java edges
+> (P2, P6) and the load test (P7) are not built.** 42 tests pass, 0 skipped. The roadmap below tracks what is actually real, and it
 > will not say otherwise. Start at
 > [`docs/WALKTHROUGH-P1-P3.md`](docs/WALKTHROUGH-P1-P3.md).
 
@@ -79,7 +81,7 @@ memory step that matters.
 - [x] P5 — Gold: aggregate marts
 - [ ] P6 — Java serving API: REST over Delta, concurrency, caching
 - [ ] P7 — Load test: throughput, p99, and what broke first
-- [ ] P8 — Airflow: backfills, OPTIMIZE/VACUUM *(optional)*
+- [x] P8 — Airflow: backfills, OPTIMIZE/VACUUM
 - [ ] P9 — CI, observability, architecture docs *(optional)*
 
 ## License

@@ -56,3 +56,21 @@ fmt: ## autoformat
 .PHONY: clean
 clean: ## wipe local warehouse + checkpoints (destructive, local data only)
 	rm -rf warehouse/ checkpoints/ data/
+
+airflow-init: ## one-time: create the airflow venv and database
+	uv venv .venv-airflow --python 3.12
+	VIRTUAL_ENV=$(PWD)/.venv-airflow uv pip install --python .venv-airflow/bin/python \
+	  "apache-airflow==2.10.5" \
+	  --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.12.txt"
+	AIRFLOW_HOME=$(PWD)/airflow/home .venv-airflow/bin/airflow db migrate
+
+airflow-test: ## run the DAG once, end to end, without a scheduler
+	AIRFLOW_HOME=$(PWD)/airflow/home \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
+	AIRFLOW__CORE__DAGS_FOLDER=$(PWD)/airflow/dags \
+	.venv-airflow/bin/airflow dags test streamhouse_daily $$(date +%Y-%m-%d)
+
+airflow-check: ## validate the DAG parses and has the expected shape
+	AIRFLOW_HOME=$(PWD)/airflow/home \
+	AIRFLOW__CORE__DAGS_FOLDER=$(PWD)/airflow/dags \
+	.venv-airflow/bin/python airflow/test_dag_structure.py
