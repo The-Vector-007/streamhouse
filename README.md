@@ -5,16 +5,15 @@ Java 21 ingest gateway feeds Kafka, Spark Structured Streaming lands it in a Del
 Lake medallion with exactly-once guarantees and data-quality gates, and a Java
 serving API reads the marts back out. Runs on a laptop.
 
-*Built so far:* the Python path from Kafka into bronze. A defect-injecting
-transaction generator, a Delta-configured Spark session, and streaming ingest that
-keeps raw payloads, adds Kafka provenance, dead-letters records it cannot identify,
-and partitions by ingest date. Exactly-once is proved by killing the stream
-mid-batch and asserting the row count on restart, not asserted in prose.
-Silver, gold, Airflow and the Java edges are not built. The roadmap says which is
-which.
+*Built so far:* the whole Python medallion. A defect-injecting generator feeds
+Kafka; bronze lands it in Delta with provenance, schema enforcement and a dead-letter
+table; silver deduplicates, validates and quarantines, emitting a data-quality table
+per run; gold rebuilds date-partitioned marts idempotently. Exactly-once is proved by
+killing the stream mid-batch and asserting the row count on restart, not asserted in
+prose. Airflow and the Java edges are not built. The roadmap says which is which.
 
-> 🚧 **Status: bronze works end to end; silver and gold are not built.**
-> 27 tests pass, 0 skipped. The roadmap below tracks what is actually real, and it
+> 🚧 **Status: bronze, silver and gold run end to end. Airflow and Java are not built.**
+> 42 tests pass, 0 skipped. The roadmap below tracks what is actually real, and it
 > will not say otherwise. Start at
 > [`docs/WALKTHROUGH-P1-P3.md`](docs/WALKTHROUGH-P1-P3.md).
 
@@ -76,8 +75,8 @@ memory step that matters.
 - [x] P1 — Domain model, Kafka topics, transaction generator
 - [ ] P2 — Java ingest gateway: virtual threads, backpressure, idempotency, graceful shutdown
 - [x] P3 — Bronze: exactly-once ingestion + failure-injection proof
-- [ ] P4 — Silver: validation, dedup, quarantine, DQ gates
-- [ ] P5 — Gold: aggregate marts
+- [x] P4 — Silver: validation, dedup, quarantine, DQ gates
+- [x] P5 — Gold: aggregate marts
 - [ ] P6 — Java serving API: REST over Delta, concurrency, caching
 - [ ] P7 — Load test: throughput, p99, and what broke first
 - [ ] P8 — Airflow: backfills, OPTIMIZE/VACUUM *(optional)*
